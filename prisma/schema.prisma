@@ -1,0 +1,70 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ScaleX never reads another app's tables. `tenant` is the app that owns the row (MarketX is
+// "marketx"); it comes from the API key, never from the request body.
+
+/// A business we might bring onto a tenant's platform. v0: prospective MarketX sellers.
+model Lead {
+  id         String     @id @default(uuid())
+  tenant     String
+  /// The import it came in with ("oct-balogun-walk"), so results compare batch to batch.
+  batch      String
+  source     LeadSource
+  name       String
+  /// +234… when we could read it, otherwise null.
+  phone      String?
+  email      String?
+  /// Handle only, lower case, no @.
+  instagram  String?
+  city       String?
+  category   String?
+  notes      String     @default("")
+  /// Ranking at import time (leadRules.scoreLead). Higher = contact first.
+  score      Int
+  /// Goes in the lead's personal sign-up link. The tenant reports progress against it.
+  inviteCode String     @unique
+  /// The same business imported twice collapses onto one row (leadRules.dedupeKey).
+  dedupeKey  String
+  status     LeadStatus @default(NEW)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  events     LeadEvent[]
+
+  @@unique([tenant, dedupeKey])
+  @@index([tenant, batch, status])
+  @@index([tenant, score])
+}
+
+/// One step a lead reached. One row per step per lead, so a retried report never counts twice.
+model LeadEvent {
+  id     String     @id @default(uuid())
+  leadId String
+  type   LeadStatus
+  at     DateTime   @default(now())
+  lead   Lead       @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@unique([leadId, type])
+}
+
+enum LeadSource {
+  CSV
+  INTERNAL
+  PLACES
+}
+
+/// In funnel order. NOT_INTERESTED is the only way out, and only before sign-up.
+enum LeadStatus {
+  NEW
+  CONTACTED
+  SIGNED_UP
+  STORE_CREATED
+  FIRST_LISTING
+  FIRST_ORDER
+  NOT_INTERESTED
+}
