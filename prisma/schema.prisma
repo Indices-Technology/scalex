@@ -68,3 +68,71 @@ enum LeadStatus {
   FIRST_ORDER
   NOT_INTERESTED
 }
+
+/// Every LLM call ScaleX makes, ok or not: who it was for, which prompt asked, what it cost.
+/// The billing record and the "no black hole" record. Only core's model gateway writes it.
+model ModelCall {
+  id            String         @id @default(uuid())
+  tenant        String
+  /// What asked, e.g. 'listing-proposal'.
+  task          String
+  promptVersion String
+  model         String
+  inputTokens   Int            @default(0)
+  outputTokens  Int            @default(0)
+  /// Millionths of a US dollar, so sums are exact. Null when the model has no price in the
+  /// gateway's table: never a guess.
+  costMicros    Int?
+  ms            Int
+  stopReason    String?
+  ok            Boolean
+  error         String?
+  requestId     String?
+  createdAt     DateTime       @default(now())
+  optimizations Optimization[]
+
+  @@index([tenant, createdAt])
+}
+
+/// One proposed listing change for one product (step 0.4b). The client applies it in its own
+/// system and reports back what it published; ScaleX never writes into a client's data.
+model Optimization {
+  id            String             @id @default(uuid())
+  tenant        String
+  /// The client's own refs, opaque to us. productRef is null while the product is still being
+  /// added; the client sends it with /applied once the product exists.
+  sellerRef     String
+  productRef    String?
+  /// The earlier round this one refines with the seller's answers.
+  parentId      String?
+  promptVersion String
+  /// What we were given (product, allowed categories, answers) and what we proposed.
+  input         Json
+  proposal      Json
+  /// checkProposal's reasons it can't be used as-is. Empty = READY.
+  problems      String[]
+  status        OptimizationStatus
+  /// What the client actually published, seller's edits included. The gap between this and
+  /// `proposal` is how we learn what the seller would not accept.
+  applied       Json?
+  rejectReason  String?
+  decidedAt     DateTime?
+  modelCallId   String
+  modelCall     ModelCall          @relation(fields: [modelCallId], references: [id])
+  parent        Optimization?      @relation("Rounds", fields: [parentId], references: [id])
+  children      Optimization[]     @relation("Rounds")
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  @@index([tenant, status, createdAt])
+  @@index([tenant, productRef])
+}
+
+/// READY passes the code checks; NEEDS_REVIEW doesn't. A later round makes its parent SUPERSEDED.
+enum OptimizationStatus {
+  READY
+  NEEDS_REVIEW
+  APPLIED
+  REJECTED
+  SUPERSEDED
+}

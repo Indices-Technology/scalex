@@ -56,6 +56,27 @@ add to it.) Split the worker out or add a queue when a measured load needs it.
 
 ---
 
+## 1a. Clients, not couplings
+
+MarketX is **tenant one, not a special case.** Any app (ours or a third party's) connects the
+same way, and nothing in ScaleX knows MarketX's database or code.
+
+| Direction | How | Why it's generic |
+|---|---|---|
+| Catalogue in | The client exposes a product feed in **Google Merchant feed format** (MarketX already serves `/feeds/google-merchant.xml`), read by a `catalogue-feed` source adapter. A push API (`POST /v1/products`) is added only when a client needs faster updates | Shopify, WooCommerce and most shop platforms already produce this format |
+| Proposals out | `GET /v1/optimizations?status=ready` and a signed webhook `optimization.ready` | The client decides how to show and apply them |
+| Apply / reject | The client applies the change **in its own system**, then calls `POST /v1/optimizations/:id/applied` or `/rejected` | ScaleX never writes into a client's data |
+| Consent | The client owns the seller relationship and tells ScaleX each seller's level (`off`, `suggest`, `auto`) via `PUT /v1/sellers/:ref/consent` | ScaleX stores it and checks it in `decide` |
+| Outcomes in | The client posts events (`product.viewed`, `enquiry.created`, `order.paid`, `order.completed`) keyed by its own product and seller refs | Same events for every client |
+| Auth | One API key per tenant; every row is scoped by `tenant` | Already built in `core` |
+
+ScaleX refers to client objects only by **opaque refs** (`productRef`, `sellerRef`) that the
+client chose. Client-specific code is allowed in exactly two places: `sources/adapters/<id>/`
+and `act/adapters/<id>/`. A test will fail if a client name shows up anywhere else.
+
+On the MarketX side the whole integration is one `scalexClient`, one webhook receiver, and the
+seller's consent and suggestions screens.
+
 ## 2. The chain of records (how you trace anything)
 
 Every arrow is a foreign key, so you can start at a sale and walk back to the evidence, or
