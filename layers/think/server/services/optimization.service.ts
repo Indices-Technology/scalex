@@ -42,6 +42,8 @@ export const optimizationService = {
    */
   async create(ctx: CallContext, body: z.infer<typeof createSchema>) {
     const parent = body.parentId ? await openRow(ctx.tenant, body.parentId) : null
+    // One seller can't continue (and so read back) another seller's proposal.
+    if (parent && parent.sellerRef !== body.sellerRef) throw notFound('Optimization')
     if (parent && !(OPEN as readonly string[]).includes(parent.status)) {
       throw new AppError('NOT_OPEN', `That proposal is already ${parent.status.toLowerCase()}`, 409)
     }

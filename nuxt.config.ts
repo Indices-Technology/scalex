@@ -18,6 +18,9 @@ export default defineNuxtConfig({
     './layers/ops',
   ],
 
+  // On Vercel: a listing proposal is a vision-model round trip (~6-10 s, MarketX waits up to 60 s).
+  nitro: { vercel: { functions: { maxDuration: 60 } } },
+
   routeRules: {
     '/**': {
       headers: {
