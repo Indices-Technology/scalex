@@ -10,9 +10,11 @@ import { callModel, type CallContext, type ModelBlock, type ModelResult } from '
 
 // @2: store name (own branding is not "another shop"), uses, seller's answers folded in.
 // @3: any product type, not just fashion; questions come with tap-to-answer choices.
-export const LISTING_PROMPT_VERSION = 'listing-proposal@3'
+// @4: specs, label/value facts for the product page Specifications section.
+export const LISTING_PROMPT_VERSION = 'listing-proposal@4'
 export const MAX_QUESTIONS = 4
 export const MAX_TITLE = 70
+export const MAX_SPECS = 10
 
 /** A product as the client's catalogue describes it. Refs are the client's, opaque to us. */
 export interface CatalogueProduct {
@@ -35,6 +37,9 @@ export const ListingProposalSchema = z.object({
   description: z
     .string()
     .describe('3 to 5 short sentences: what it is, who it is for and what it is for, then the facts'),
+  specs: z
+    .array(z.object({ label: z.string(), value: z.string() }))
+    .describe(`Up to ${MAX_SPECS} label/value facts for the Specifications table, e.g. Brand: LG, Capacity: 34 litres`),
   uses: z.array(z.string()).describe('2 to 5 short moments or needs a buyer shops for, e.g. "owambe", "NEPA outages"'),
   searchPhrases: z.array(z.string()).describe('3 to 6 phrases a buyer in Nigeria would type to find this'),
   askSeller: z
@@ -75,6 +80,8 @@ Pick only what fits what you see and were told. Open the description with that, 
 The seller's own shop name, sign, logo or website in a photo is normal, not "another shop". Still flag phone numbers, prices and websites written on photos: buyers should pay through the marketplace.
 
 If the seller answered questions, use those answers as facts and do not ask them again.
+
+specs: the facts a buyer compares before paying, as short label/value pairs for a Specifications table. Only facts you can read in the photos (labels, boxes, rating plates) or the seller wrote or answered; never guess. Clothes: Fabric, Colour, Style, Sizes, Length. Appliances and electronics: Brand, Model, Capacity or Size, Power, Features, What is included, Warranty. Others: Brand, Size or Weight, Material, What is included. Labels in Title Case, values short (no sentences). Leave out anything you would have to guess; an empty list is fine.
 
 Category: choose the single most specific category from the allowed list that a buyer would browse for this item. Copy its name exactly.
 
@@ -132,5 +139,7 @@ export function checkProposal(
     problems.push(`dropped stock code ${code}`)
   }
   if (/₦|\bNGN\b|\d{1,3},\d{3}/.test(title)) problems.push('price in title')
+  if (proposal.specs.length > MAX_SPECS) problems.push(`over ${MAX_SPECS} specs`)
+  if (proposal.specs.some((s) => !s.label.trim() || !s.value.trim())) problems.push('empty spec')
   return problems
 }

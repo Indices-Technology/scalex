@@ -16,6 +16,7 @@ const good: ListingProposal = {
   title: 'Dubai abaya, black with stone work, BA 455',
   category: 'Abaya',
   description: 'A black abaya.',
+  specs: [],
   uses: [],
   searchPhrases: [],
   askSeller: [],
@@ -27,6 +28,10 @@ const good: ListingProposal = {
 describe('checkProposal', () => {
   it('accepts a good proposal', () => {
     expect(checkProposal(product, good, allowed)).toEqual([])
+  })
+
+  it('rejects an empty spec', () => {
+    expect(checkProposal(product, { ...good, specs: [{ label: 'Brand', value: ' ' }] }, allowed)).toEqual(['empty spec'])
   })
 
   it('accepts the stock code written without the space', () => {
