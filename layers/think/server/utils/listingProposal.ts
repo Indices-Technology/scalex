@@ -11,7 +11,8 @@ import { callModel, type CallContext, type ModelBlock, type ModelResult } from '
 // @2: store name (own branding is not "another shop"), uses, seller's answers folded in.
 // @3: any product type, not just fashion; questions come with tap-to-answer choices.
 // @4: specs, label/value facts for the product page Specifications section.
-export const LISTING_PROMPT_VERSION = 'listing-proposal@4'
+// @5: flags addressed to the seller ("you"), since they now go out by email.
+export const LISTING_PROMPT_VERSION = 'listing-proposal@5'
 export const MAX_QUESTIONS = 4
 export const MAX_TITLE = 70
 export const MAX_SPECS = 10
@@ -51,7 +52,7 @@ export const ListingProposalSchema = z.object({
       }),
     )
     .describe(`At most ${MAX_QUESTIONS} questions, most important first`),
-  flags: z.array(z.string()).describe('Problems with the listing a human should look at; empty if none'),
+  flags: z.array(z.string()).describe('Things the seller should check, addressed to them as "you"; empty if none'),
   confidence: z.enum(['high', 'medium', 'low']),
   reason: z.string().describe('One or two sentences on why this title and category'),
 })
@@ -87,7 +88,7 @@ Category: choose the single most specific category from the allowed list that a 
 
 askSeller: the seller is busy and on a phone, so every question must be answerable with a tap. Ask only for facts a buyer needs before paying that are missing and that you cannot see (sizes available, fabric, what is included, warranty). At most ${MAX_QUESTIONS}, most important first, each under 10 words. Give the likely answers as choices, best guess first (sizes: "Free size", "S", "M", "L", "XL", "XXL"; warranty: "No warranty", "6 months", "1 year", "2 years"). Never ask what the photo already shows. Never ask about delivery, payment or returns: the marketplace handles those.
 
-flags: anything a human should check: the photo does not match the title, the photo shows a phone number, website or another shop's watermark, the item looks like a different product type than its category, the description contradicts the photo.`
+flags: written to the seller, as "you" (they read these in an email): what to check and why, e.g. "Your title says WM 2Y1TYP6J but the description says F2Y1TYP6J. Which is right?". Anything to check:: the photo does not match the title, the photo shows a phone number, website or another shop's watermark, the item looks like a different product type than its category, the description contradicts the photo.`
 
 function describeProduct(p: CatalogueProduct, allowedCategories: string[]): string {
   return [
