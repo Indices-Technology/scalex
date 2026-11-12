@@ -12,7 +12,7 @@ import { callModel, type CallContext, type ModelBlock, type ModelResult } from '
 // @3: any product type, not just fashion; questions come with tap-to-answer choices.
 // @4: specs, label/value facts for the product page Specifications section.
 // @5: flags addressed to the seller ("you"), since they now go out by email.
-export const LISTING_PROMPT_VERSION = 'listing-proposal@5'
+export const LISTING_PROMPT_VERSION = 'listing-proposal@6'
 export const MAX_QUESTIONS = 4
 export const MAX_TITLE = 70
 export const MAX_SPECS = 10
@@ -67,6 +67,12 @@ How to think about the title:
 - If the current title has a stock code (like "BA 455" or "ADR 529"), keep it at the end exactly as written. The seller uses it to find the item.
 - No price, city, shop name, emojis, ALL CAPS or hype words ("quality", "classy", "best").
 - At most ${MAX_TITLE} characters.
+
+Measured search demand (Google Keyword Planner, Nigeria, 2026-11-12; monthly searches). When several names honestly describe the item, lead with the one with more demand. Never use a name that does not fit what you see.
+- 1K-10K: abaya, abaya gown, gas cooker, gas cooker with oven, table top gas cooker, maxi gas cooker, scanfrost gas cooker, lg fridge, inverter ac, inverter air conditioner
+- 100-1K: adire gown, adire bubu gown, jalabiya, abaya and hijab, cotton abaya, ladies abaya, lg double door fridge, lg inverter fridge, lg single door fridge, lg freezer, lg upright freezer, hisense inverter ac, lg dual inverter ac, thermocool gas cooker, polystar gas cooker, 4 burner gas cooker with oven, 5 burner gas cooker, 6 burner gas cooker
+- Nigerian buyers call a long, loose women's gown an "abaya" or "abaya gown" even when it is a bubu or kaftan. For those, put "abaya gown" in the title (e.g. "Abaya gown, adire bubu with aso oke panel, purple, ADR 529") and keep Abaya as the category if the seller chose it.
+- For appliances, brand + type + size is what people search ("Maxi gas cooker with oven, 4 burner"; "LG inverter fridge, double door, 423 litres").
 
 Facts:
 - Only state what you can see in the photos or what the seller wrote. If you are unsure of the fabric, do not name it; ask the seller instead.

@@ -77,8 +77,13 @@ async function main() {
     return console.log(`→ ${json.replace(/\.json$/, '.html')}`)
   }
   const categories = (await get<{ name: string }[]>('/api/commerce/categories')).map((c) => c.name)
-  const list = await get<{ products: ApiProduct[] }>(`/api/commerce/products?storeSlug=${storeSlug}&limit=100`)
-  const picked = sample(list.products, count)
+  const all: ApiProduct[] = []
+  for (let offset = 0; ; offset += 100) {
+    const page = await get<{ products: ApiProduct[] }>(`/api/commerce/products?storeSlug=${storeSlug}&limit=100&offset=${offset}`)
+    all.push(...page.products)
+    if (page.products.length < 100) break
+  }
+  const picked = sample(all, count)
 
   const rows: { product: CatalogueProduct; slug: string; proposal?: ListingProposal; problems: string[]; model?: string; cost: number | null }[] = []
   for (const summary of picked) {

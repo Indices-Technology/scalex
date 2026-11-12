@@ -8,7 +8,7 @@
  *   npx tsx scripts/deliver-optimizations.ts <payload.json>           # dry run
  *   npx tsx scripts/deliver-optimizations.ts <payload.json> --apply
  *
- * payload.json: { runId, improved: [{productId, optimizationId?, specs}], toCheck: [{productId, notes}] }
+ * payload.json: { runId, improved: [{productId, optimizationId?, specs, title?, description?}], toCheck: [{productId, notes}] }
  */
 import 'dotenv/config'
 import { readFileSync } from 'node:fs'
@@ -27,7 +27,7 @@ const res = await fetch(`${MARKETX}/api/internal/optimizations/deliver`, {
   headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
   body: JSON.stringify({
     runId: payload.runId,
-    improved: payload.improved.map(({ productId, specs }: any) => ({ productId, specs })),
+    improved: payload.improved.map(({ productId, specs, title, description }: any) => ({ productId, specs, title, description })),
     toCheck: payload.toCheck,
     dryRun: !apply,
   }),
@@ -35,7 +35,7 @@ const res = await fetch(`${MARKETX}/api/internal/optimizations/deliver`, {
 const out = await res.json().catch(() => null)
 if (!res.ok) throw new Error(`MarketX ${res.status}: ${out?.message ?? out?.statusMessage ?? ''}`)
 console.log(apply ? 'APPLIED' : 'DRY RUN (nothing written or sent)')
-console.log('specs written for:', out.data.written.join(', ') || 'none')
+console.log('products updated:', out.data.written.join(', ') || 'none')
 for (const s of out.data.sellers) console.log(`- ${s.store}: ${s.improved} improved, ${s.toCheck} to check, email=${s.email}\n  "${s.message}"`)
 
 if (apply) {
