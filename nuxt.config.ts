@@ -22,6 +22,7 @@ export default defineNuxtConfig({
   nitro: { vercel: { functions: { maxDuration: 60 } } },
 
   routeRules: {
+    '/': { redirect: '/dashboard' },
     '/**': {
       headers: {
         'x-content-type-options': 'nosniff',
