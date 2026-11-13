@@ -33,9 +33,7 @@ const search = computed(() => {
 })
 const shopping = computed(() => {
   const s = m.value?.shopping
-  if (!s?.ok || !m.value) return null
-  const r = m.value.range
-  return { cur: sumRange(s.daily, r.curFrom, r.end), prev: sumRange(s.daily, r.prevFrom, r.prevTo) }
+  return s?.ok ? s.totals : null
 })
 const markers = computed(() =>
   m.value?.experiments.ok ? m.value.experiments.list.map((e) => ({ date: e.changedOn, label: e.store })) : [],
@@ -123,9 +121,15 @@ const perDay = (v: number, days: number) => (days ? n(v / days, 1) : '–')
           <details><summary>Google's message</summary><p class="muted">{{ m.shopping.error }}</p></details>
         </div>
         <template v-else>
-          <DailyBars title="Shopping clicks per day" :days="m.shopping.daily.map((d) => ({ date: d.date, value: d.clicks }))" :markers="markers" />
-          <h3>Top products, 28 days</h3>
-          <div class="scroll">
+          <dl class="stats">
+            <div><dt>Clicks, 90 days</dt><dd>{{ n(m.shopping.totals.all.clicks) }}</dd></div>
+            <div><dt>Impressions, 90 days</dt><dd>{{ n(m.shopping.totals.all.impressions) }}</dd></div>
+            <div><dt>Impressions, 28 days</dt><dd>{{ n(m.shopping.totals.cur.impressions) }}</dd></div>
+          </dl>
+          <DailyBars v-if="m.shopping.hasDaily" title="Shopping clicks per day" :days="m.shopping.daily.map((d) => ({ date: d.date, value: d.clicks }))" :markers="markers" />
+          <p v-else class="muted">Google only gives totals at this volume. Daily and per-product numbers appear once there is more traffic.</p>
+          <h3 v-if="m.shopping.topProducts.length">Top products, 28 days</h3>
+          <div v-if="m.shopping.topProducts.length" class="scroll">
             <table>
               <thead><tr><th>Product</th><th class="r">Clicks</th><th class="r">Impressions</th></tr></thead>
               <tbody>

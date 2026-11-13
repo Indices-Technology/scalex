@@ -90,7 +90,23 @@ const num = (v: unknown) => Number(v ?? 0)
 const mcDate = (d: { year: number; month: number; day: number }) =>
   `${d.year}-${String(d.month).padStart(2, '0')}-${String(d.day).padStart(2, '0')}`
 
+// At low volume Google returns nothing when split by date or product, only whole-account totals,
+// so the totals are asked for separately and the page shows them even when the splits are empty.
+async function shoppingTotals(from: string, to: string) {
+  const rows = await merchantReport(
+    MERCHANT,
+    `SELECT marketing_method, clicks, impressions FROM product_performance_view WHERE date BETWEEN '${from}' AND '${to}'`,
+  )
+  const v = rows.map((r) => r.productPerformanceView ?? {})
+  return { clicks: v.reduce((a, x) => a + num(x.clicks), 0), impressions: v.reduce((a, x) => a + num(x.impressions), 0) }
+}
+
 async function shopping(start: string, end: string, curFrom: string) {
+  const [cur, prev, all] = await Promise.all([
+    shoppingTotals(curFrom, end),
+    shoppingTotals(addDays(curFrom, -28), addDays(curFrom, -1)),
+    shoppingTotals(start, end),
+  ])
   const [daily, top] = await Promise.all([
     merchantReport(MERCHANT, `SELECT date, clicks, impressions FROM product_performance_view WHERE date BETWEEN '${start}' AND '${end}'`),
     merchantReport(
@@ -100,6 +116,8 @@ async function shopping(start: string, end: string, curFrom: string) {
   ])
   const v = (r: any) => r.productPerformanceView ?? {}
   return {
+    totals: { cur, prev, all },
+    hasDaily: daily.length > 0,
     daily: fillDays(
       start,
       end,
